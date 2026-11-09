@@ -94,6 +94,42 @@ th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.06em;color
 td:first-child{color:var(--muted)}
 td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+.views,.toggles{display:flex;flex-wrap:wrap;gap:8px}
+.tools{gap:8px 16px}
+.btn,.seg button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:40px}
+#stage{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hint{top:auto;bottom:10px}
+th:first-child,td:first-child{position:sticky;left:0;background:var(--surface);z-index:1}
+/* iPad */
+@media (min-width:601px) and (max-width:1024px){
+  #stage{height:clamp(420px,58vh,720px)}
+  .btn{padding:10px 16px;font-size:15px;min-height:44px}
+  .seg button{min-height:44px}
+}
+/* телефон */
+@media (max-width:600px){
+  body{padding-block:12px 40px}
+  .wrap{gap:16px}
+  header{gap:14px}
+  header > *{width:100%}
+  h1{font-size:24px}
+  h1 small{font-size:13px;font-weight:500}
+  .seg{display:grid;grid-template-columns:1fr 1fr;border-radius:14px}
+  .seg button{border-radius:10px;padding:10px 6px;font-size:14px;min-height:44px}
+  #stage{height:60vh;height:60svh;min-height:340px;border-radius:12px}
+  .hint{display:none}
+  .viewtag{top:auto;bottom:10px;font-size:11px}
+  .tools{flex-direction:column;flex-wrap:nowrap}
+  .views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .toggles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .btn{padding:10px 6px;font-size:14px;min-height:44px;text-align:center}
+  .sep{display:none}
+  .legend{font-size:12px;gap:4px 12px}
+  .card{padding:16px}
+  .card h2{font-size:17px}
+  dl.params{gap:8px 12px}
+  table{font-size:13px}
+}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 
@@ -111,18 +147,21 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
   <div class="main">
     <div class="stagebox">
       <div id="stage">
-        <div class="hint">тяни — вращать · 2 пальца — сдвиг</div>
+        <div class="hint">тяни — вращать · щипок — зум</div>
         <div class="viewtag" id="viewtag">вид сбоку</div>
       </div>
       <div class="tools">
-        <button class="btn big" id="vSide">Вид сбоку</button>
-        <button class="btn big" id="vEnd">Вид с торца</button>
-        <button class="btn" id="tSpin" aria-pressed="false">Вращать</button>
-        <span class="sep" aria-hidden="true"></span>
-        <button class="btn" id="tDims" aria-pressed="true">Размеры</button>
-        <button class="btn" id="tAxis" aria-pressed="true">Ось («шампур»)</button>
-        <button class="btn" id="tTurn" aria-pressed="false">Один виток</button>
-        <button class="btn" id="tGroove" aria-pressed="true">Бороздки</button>
+        <div class="views">
+          <button class="btn big" id="vSide">Вид сбоку</button>
+          <button class="btn big" id="vEnd">Вид с торца</button>
+          <button class="btn" id="tSpin" aria-pressed="false">Вращать</button>
+        </div>
+        <div class="toggles">
+          <button class="btn" id="tDims" aria-pressed="true">Размеры</button>
+          <button class="btn" id="tAxis" aria-pressed="true">Ось («шампур»)</button>
+          <button class="btn" id="tTurn" aria-pressed="false">Один виток</button>
+          <button class="btn" id="tGroove" aria-pressed="true">Бороздки</button>
+        </div>
       </div>
       <div class="legend">
         <span><i style="background:var(--s1)"></i>цепь 1 (остов)</span>
@@ -1240,7 +1279,7 @@ const FORMS = {
   Ap:{key:'Ap', bpt:12, rise:3.0, rP:10.3, rS:7.2, alpha:50, disp:4.5, d:2.0, nbp:25,
      pitchTxt:'шаг ≈ 36 Å', diamTxt:'Ø ≈ 23 Å', riseTxt:'≈ 3 Å'},
   Z:{key:'Z', bpt:12, rise:3.7, rP:7.9, rS:5.4, alpha:70, disp:-2, d:0, nbp:25, hand:-1, zig:true, seq:'GC',
-     pitchTxt:'шаг ≈ 45 Å (учебник)', diamTxt:'Ø ≈ 18 Å', riseTxt:'≈ 3,7 Å'}
+     pitchTxt:'шаг ≈ 45 Å\n(учебник)', diamTxt:'Ø ≈ 18 Å', riseTxt:'≈ 3,7 Å'}
 };
 const PANELS = {
   B:`<h2>B-форма</h2><p class="sub">Обычная форма ДНК в клетке. Цифры из лекции.</p>
@@ -1341,14 +1380,15 @@ function readColors(){ ['--s1','--s2','--bA','--bT','--bG','--bC','--fg','--mute
 function label(text, color, size){
   const cv = document.createElement('canvas'); const ctx = cv.getContext('2d');
   const fs = 64; ctx.font = `600 ${fs}px "JetBrains Mono", monospace`;
-  const w = Math.ceil(ctx.measureText(text).width) + 40; cv.width = w; cv.height = fs + 36;
+  const lines = String(text).split('\n'), lh = fs*1.15;
+  const w = Math.ceil(Math.max(...lines.map(t=>ctx.measureText(t).width))) + 40; cv.width = w; cv.height = Math.round(fs + 36 + lh*(lines.length-1));
   ctx.font = `600 ${fs}px "JetBrains Mono", monospace`;
   ctx.fillStyle = C['--stage']; ctx.globalAlpha = .82;
   const r=18; ctx.beginPath(); ctx.moveTo(r,0); ctx.arcTo(w,0,w,cv.height,r); ctx.arcTo(w,cv.height,0,cv.height,r); ctx.arcTo(0,cv.height,0,0,r); ctx.arcTo(0,0,w,0,r); ctx.fill();
-  ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.textBaseline='middle'; ctx.fillText(text, 20, cv.height/2+2);
+  ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.textBaseline='middle'; lines.forEach((t,k)=>ctx.fillText(t, 20, 18 + fs/2 + 2 + k*lh));
   const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
-  const h = size||3.2; sp.scale.set(h*w/cv.height, h, 1); sp.renderOrder = 10;
+  const u = (size||3.2)/(fs+36); sp.scale.set(w*u, cv.height*u, 1); sp.renderOrder = 10;
   return sp;
 }
 function lineMat(color){ return new THREE.LineBasicMaterial({color, depthTest:false, transparent:true}); }
@@ -1441,22 +1481,22 @@ function build(){
   const yA = k0*F.rise - yc, yB = yA + pitch, xP = Rout + 4;
   groups.vdims.add(seg([V(xP,yA,0),V(xP,yB,0)], fg), seg([V(xP-1.5,yA,0),V(xP+1.5,yA,0)], fg), seg([V(xP-1.5,yB,0),V(xP+1.5,yB,0)], fg));
   const pl = label(F.pitchTxt, fg, 3.2); pl.position.set(xP+1, (yA+yB)/2, 0); pl.center.set(0,.5); groups.vdims.add(pl);
-  const pl2 = label('1 виток = '+F.bpt+' пар', C['--muted'], 2.4); pl2.position.set(xP+1, (yA+yB)/2-4, 0); pl2.center.set(0,.5); groups.vdims.add(pl2);
-  const xR = -(Rout+4), yR1 = yA, yR2 = yA + F.rise;
+  const pl2 = label('1 виток = '+F.bpt+' пар', C['--muted'], 2.4); pl2.position.set(xP+1, (yA+yB)/2-6, 0); pl2.center.set(0,.5); groups.vdims.add(pl2);
+  const xR = -(Rout+4), yR1 = F.rise - yc, yR2 = yR1 + F.rise;
   groups.vdims.add(seg([V(xR,yR1,0),V(xR,yR2,0)], fg), seg([V(xR-1.5,yR1,0),V(xR+1.5,yR1,0)], fg), seg([V(xR-1.5,yR2,0),V(xR+1.5,yR2,0)], fg));
   const rl = label(F.riseTxt+' / пара', fg, 2.8); rl.position.set(xR-1, (yR1+yR2)/2, 0); rl.center.set(1,.5); groups.vdims.add(rl);
 
   // grooves: label at angle facing +z (phi = 270°)
-  const phi = 270; let yMin = ((hand>0 ? 270 : 90)/tw)*F.rise - yc;
+  const phi = 180; let yMin = (180/tw)*F.rise - yc;
   while (yMin < -pitch*0.26) yMin += pitch;
   let yMaj = yMin + pitch/2; if (yMaj > yc-2) yMaj -= pitch;
   const aF = rad(phi);
   const mk = (y, txt) => {
     const inner = pos(F.rP*0.55, aF, y), outer = pos(Rout+7, aF, y);
     groups.groove.add(seg([inner, outer], C['--muted']));
-    const l = label(txt, C['--fg'], 2.6); l.position.copy(outer).add(V(0,0,1)); groups.groove.add(l);
+    const l = label(txt, C['--fg'], 2.4); l.position.copy(outer).add(V(-0.6,0,0)); l.center.set(1,.5); groups.groove.add(l);
   };
-  mk(yMin, 'малая бороздка'); mk(yMaj, 'большая бороздка');
+  mk(yMin, 'малая\nбороздка'); mk(yMaj, 'большая\nбороздка');
 
   model.add(groups.axis, groups.dims, groups.vdims, groups.groove);
   scene.add(model);
@@ -1492,8 +1532,10 @@ function goView(v, instant){
 }
 
 function resize(){
-  const w = stage.clientWidth, h = stage.clientHeight;
+  const w = stage.clientWidth, h = stage.clientHeight, prev = camera.aspect;
+  if (!w || !h) return;
   renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  if (model && Math.abs(Math.log(camera.aspect/prev)) > 0.25) goView(state.view, true);
 }
 new ResizeObserver(()=>resize()).observe(stage);
 
